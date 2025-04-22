@@ -3,10 +3,10 @@
 import argparse
 import requests
 from bs4 import BeautifulSoup
+import sys
 
 def main():
-    parser = argparse.ArgumentParser(
-        description = 'Enumerate Gitlab valid users and perform a Password Spraying Attack.', add_help = True, prefix_chars = '-')
+    parser = argparse.ArgumentParser(description = 'Enumerate Gitlab valid users and perform a Password Spraying Attack.', add_help = True, prefix_chars = '-', prog='test')
     subparsers = parser.add_subparsers(dest = 'command')
     enum_parser = subparsers.add_parser('enum', help = 'Enumerate Gitlab valid users.')
     enum_parser.add_argument('-U', help = 'User wordlist.', metavar = '<WORDLIST>', required = True)
@@ -15,7 +15,7 @@ def main():
     enum_parser.add_argument('-t', help = 'Target URL.', metavar = '<URL>', required = True, type = str)
     enum_parser.add_argument('-v', help = 'Verbose.', action = 'store_true', default = False)
 
-    spray_parser = subparsers.add_parser('spray', help = '')
+    spray_parser = subparsers.add_parser('spray', help = 'Perform a Password Spraying attack.')
     usergroup = spray_parser.add_mutually_exclusive_group(required = True)
     usergroup.add_argument('-U', help = 'User Wordlist.', metavar = '<WORDLIST>')
     usergroup.add_argument('-u', help = 'Specify a single user.', metavar = '<USER>')
@@ -30,6 +30,10 @@ def main():
     spray_parser.add_argument('-vv', help = 'Verbose 2.', action = 'store_true', default = False)
     args = parser.parse_args()
     
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(0)
+
     proxies = {}
     if args.proxy:
         proxies = {
