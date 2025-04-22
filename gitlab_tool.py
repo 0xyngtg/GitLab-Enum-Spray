@@ -93,7 +93,7 @@ def main():
         if target[-1] == '/':
             login_url = f'{target}users/sign_in'
         else:
-            login_url = f'/{target}/users/sign_in'
+            login_url = f'{target}/users/sign_in'
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Referer': login_url
